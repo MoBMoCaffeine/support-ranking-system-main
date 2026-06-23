@@ -25,12 +25,20 @@ if (!ADMIN_PASSWORD || !JWT_SECRET || !APPS_SCRIPT_URL || !DEPLOY_KEY) {
 
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync(ADMIN_PASSWORD, 10);
 
+const cors = require('cors');
 
+app.use(cors({
+    origin: [
+        'http://localhost:5173',
+        'https://support-ranking-system.vercel.app'
+    ],
+    credentials: true
+}));
 
 
 const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 100, 
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests from this IP, please try again later.' },
@@ -38,12 +46,12 @@ const apiLimiter = rateLimit({
 
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 5, 
+    windowMs: 15 * 60 * 1000,
+    max: 5,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many login attempts. Please try again after 15 minutes.' },
-    skipSuccessfulRequests: true, 
+    skipSuccessfulRequests: true,
 });
 
 
