@@ -54,7 +54,7 @@ const COLORS = [
   '#06B6D4', '#10B981', '#F97316', '#6366F1',
 ];
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 type FormState = {
   name: string;
