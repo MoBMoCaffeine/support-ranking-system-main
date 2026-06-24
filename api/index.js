@@ -25,6 +25,7 @@ const ADMIN_PASSWORD_HASH = bcrypt.hashSync(ADMIN_PASSWORD, 10);
 app.use(cors({
     origin: [
         'http://localhost:5173',
+        'https://support-ranking-boards.vercel.app',
         'https://support-ranking-system.vercel.app',
         'https://support-ranking-system-3c9c4f4db.vercel.app'
     ],
@@ -56,7 +57,7 @@ const adminLimiter = rateLimit({
     message: { error: 'Too many admin actions' },
 });
 
-app.use('/api', apiLimiter);
+app.use(apiLimiter);
 
 function requireAuth(req, res, next) {
     const auth = req.headers.authorization || '';
@@ -82,7 +83,7 @@ async function forwardToAppsScript(action, queryParams = '', body = null, method
     try { return JSON.parse(text); } catch { return text; }
 }
 
-app.get('/api/tracks', async (req, res) => {
+app.get('/tracks', async (req, res) => {
     try {
         const data = await forwardToAppsScript('getTracks');
         res.json(data);
@@ -91,7 +92,7 @@ app.get('/api/tracks', async (req, res) => {
     }
 });
 
-app.get('/api/tracks/:slug/students', async (req, res) => {
+app.get('/tracks/:slug/students', async (req, res) => {
     try {
         const tracks = await forwardToAppsScript('getTracks');
         if (!Array.isArray(tracks)) return res.status(500).json({ error: 'Invalid tracks data' });
@@ -106,7 +107,7 @@ app.get('/api/tracks/:slug/students', async (req, res) => {
     }
 });
 
-app.post('/api/admin/login', loginLimiter, async (req, res) => {
+app.post('/admin/login', loginLimiter, async (req, res) => {
     const { password, key } = req.body;
     const validPassword = bcrypt.compareSync(password || '', ADMIN_PASSWORD_HASH);
     const validKey = (key || '') === ADMIN_KEY;
@@ -119,9 +120,9 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
     res.json({ token });
 });
 
-app.use('/api/admin', requireAuth, adminLimiter);
+app.use('/admin', requireAuth, adminLimiter);
 
-app.post('/api/admin/:action', async (req, res) => {
+app.post('/admin/:action', async (req, res) => {
     const action = req.params.action;
     const allowedActions = ['createTrack', 'updateTrack', 'deleteTrack', 'addStudent', 'updateStudents', 'deleteStudent'];
 
