@@ -1,18 +1,13 @@
-#!/bin/bash
-
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fetch = require('node-fetch');
-const path = require('path');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_KEY = process.env.ADMIN_KEY;
@@ -27,8 +22,6 @@ if (!ADMIN_PASSWORD || !JWT_SECRET || !APPS_SCRIPT_URL || !DEPLOY_KEY) {
 
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync(ADMIN_PASSWORD, 10);
 
-const cors = require('cors');
-
 app.use(cors({
     origin: [
         'http://localhost:5173',
@@ -37,7 +30,6 @@ app.use(cors({
     credentials: true
 }));
 
-
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -45,7 +37,6 @@ const apiLimiter = rateLimit({
     legacyHeaders: false,
     message: { error: 'Too many requests from this IP, please try again later.' },
 });
-
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -56,7 +47,6 @@ const loginLimiter = rateLimit({
     skipSuccessfulRequests: true,
 });
 
-
 const adminLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 50,
@@ -64,7 +54,6 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
     message: { error: 'Too many admin actions from this IP, please slow down.' },
 });
-
 
 app.use('/api', apiLimiter);
 
@@ -81,20 +70,16 @@ function requireAuth(req, res, next) {
     }
 }
 
-
 async function forwardToAppsScript(action, queryParams = '', body = null, method = 'GET') {
     const url = `${APPS_SCRIPT_URL}?action=${action}&key=${DEPLOY_KEY}${queryParams ? '&' + queryParams : ''}`;
     const options = { method };
     if (body && method === 'POST') {
-        // options.headers = { 'Content-Type': 'application/json' };
         options.body = JSON.stringify(body);
     }
     const res = await fetch(url, options);
     const text = await res.text();
     try { return JSON.parse(text); } catch { return text; }
 }
-
-
 
 app.get('/api/tracks', async (req, res) => {
     try {
@@ -120,7 +105,6 @@ app.get('/api/tracks/:slug/students', async (req, res) => {
     }
 });
 
-
 app.post('/api/admin/login', loginLimiter, async (req, res) => {
     const { password, key } = req.body;
     const validPassword = bcrypt.compareSync(password || '', ADMIN_PASSWORD_HASH);
@@ -133,7 +117,6 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
     const token = jwt.sign({ role: 'admin', iat: Date.now() }, JWT_SECRET, { expiresIn: '2h' });
     res.json({ token });
 });
-
 
 app.use('/api/admin', requireAuth, adminLimiter);
 
@@ -150,7 +133,6 @@ app.post('/api/admin/:action', async (req, res) => {
         const url = `${APPS_SCRIPT_URL}?action=${action}&key=${DEPLOY_KEY}${queryParams ? '&' + queryParams : ''}`;
         const fetchRes = await fetch(url, {
             method: 'POST',
-            // headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(req.body),
         });
 
@@ -159,12 +141,6 @@ app.post('/api/admin/:action', async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
-});
-
-
-app.use(express.static(path.join(__dirname, 'dist')));
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;

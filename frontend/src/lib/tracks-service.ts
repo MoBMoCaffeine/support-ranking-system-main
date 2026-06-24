@@ -1,5 +1,4 @@
-
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export interface Track {
   id: string;
@@ -36,9 +35,10 @@ function getAdminToken(): string | null {
   return sessionStorage.getItem('adminToken');
 }
 
-
 async function apiGet(endpoint: string) {
-  const res = await fetch(`${API_URL}${endpoint}`);
+  const url = `${API_URL}${endpoint}`;
+  console.log('API GET:', url);  // للـ debugging
+  const res = await fetch(url);
   const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
 
   if (!res.ok) {
@@ -57,7 +57,9 @@ async function apiPost(endpoint: string, body: any, requireAuth = false) {
     if (!token) throw new Error('Not authenticated');
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  const url = `${API_URL}${endpoint}`;
+  console.log('API POST:', url);  // للـ debugging
+  const res = await fetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -83,7 +85,7 @@ async function loadTracksFromProxy(): Promise<Track[]> {
   const now = Date.now();
   if (cache && now - lastFetch < CACHE_TIME) return cache;
 
-  const data = await apiGet('/api/tracks');
+  const data = await apiGet('/api/tracks');  // ← FIXED: كان /tracks
   if (!Array.isArray(data)) throw new Error('Invalid data format from server');
 
   cache = data.map((track: any, position: number) => ({
