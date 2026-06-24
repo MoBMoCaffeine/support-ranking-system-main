@@ -6,3 +6,4 @@ frontend/dist/
 .env
 backend/.env
 frontend/.env
+api/.env
