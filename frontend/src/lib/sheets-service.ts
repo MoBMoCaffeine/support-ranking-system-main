@@ -121,8 +121,8 @@ function parseRankings(csv: string, trackId: string): StudentRanking[] {
     .map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-export async function fetchTrackData(trackId: string): Promise<TrackData> {
-  const track = await fetchTrackBySlug(trackId);
+export async function fetchTrackData(slug: string): Promise<TrackData> {
+  const track = await fetchTrackBySlug(slug!);
 
   if (!track) {
     return { rankings: [], stats: emptyStats() };
@@ -134,17 +134,22 @@ export async function fetchTrackData(trackId: string): Promise<TrackData> {
     return { rankings: [], stats: emptyStats() };
   }
 
-  const response = await fetch(csvUrl);
+  try {
+    const response = await fetch(csvUrl);
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch Google Sheet');
+    if (!response.ok) {
+      throw new Error('Failed to fetch Google Sheet');
+    }
+
+    const text = await response.text();
+    const rankings = parseRankings(text, track.slug || track.id);
+
+    return {
+      rankings,
+      stats: buildStats(rankings),
+    };
+  } catch (error) {
+    console.error('Error fetching track data:', error);
+    return { rankings: [], stats: emptyStats() };
   }
-
-  const text = await response.text();
-  const rankings = parseRankings(text, track.slug || track.id);
-
-  return {
-    rankings,
-    stats: buildStats(rankings),
-  };
 }

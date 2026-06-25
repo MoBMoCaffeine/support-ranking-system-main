@@ -6,6 +6,7 @@ import {
   createTrack,
   updateTrack,
   deleteTrack,
+  adminLogin,
   Track,
 } from '@/lib/tracks-service';
 import { Navbar } from '@/components/layout/navbar';
@@ -53,8 +54,6 @@ const COLORS = [
   '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899',
   '#06B6D4', '#10B981', '#F97316', '#6366F1',
 ];
-
-const API_URL = import.meta.env.VITE_API_URL || '';
 
 type FormState = {
   name: string;
@@ -246,19 +245,13 @@ export function AdminPage() {
     }
   };
 
+  // ← التعديل الرئيسي هنا: استخدام adminLogin من tracks-service.ts
   const handleAdminSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setAdminError('');
     try {
-      const res = await fetch(`${API_URL}/api/admin/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPassword, key: adminKey }),
-      });
-      if (!res.ok) throw new Error('Invalid credentials');
-      const data = await res.json();
-      sessionStorage.setItem('adminToken', data.token);
-      setAdminToken(data.token);
+      const token = await adminLogin(adminPassword, adminKey);
+      setAdminToken(token);
     } catch {
       setAdminError('Invalid password or admin key');
     }

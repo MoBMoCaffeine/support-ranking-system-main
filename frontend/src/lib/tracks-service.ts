@@ -1,5 +1,3 @@
-const API_URL = import.meta.env.VITE_API_URL || '';
-
 export interface Track {
   id: string;
   slug: string;
@@ -31,66 +29,76 @@ let cache: Track[] | null = null;
 let lastFetch = 0;
 const CACHE_TIME = 60 * 1000;
 
-function getAdminToken(): string | null {
-  return sessionStorage.getItem('adminToken');
-}
+const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
 
-async function apiGet(endpoint: string) {
-  const url = `${API_URL}${endpoint}`;
-  console.log('API GET:', url);  // للـ debugging
-  const res = await fetch(url);
-  const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
+const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || '';
 
-  if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
-  }
-  if (data.error) {
-    throw new Error(data.error);
-  }
-  return data;
-}
+async function fetchFromScript(action: string, payload?: any, method: 'GET' | 'POST' = 'GET'): Promise<any> {
+  if (method === 'POST') {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      // headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...payload }),
+    });
 
-async function apiPost(endpoint: string, body: any, requireAuth = false) {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (requireAuth) {
-    const token = getAdminToken();
-    if (!token) throw new Error('Not authenticated');
-    headers['Authorization'] = `Bearer ${token}`;
+    if (!res.ok) {
+      throw new Error(`Failed to fetch: ${res.status}`);
+    }
+
+    const data = await res.json().catch(() => {
+      throw new Error('Invalid JSON response');
+    });
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
   }
-  const url = `${API_URL}${endpoint}`;
-  console.log('API POST:', url);  // للـ debugging
+
+  // GET logic for read operations
+  const params = new URLSearchParams();
+  params.append('action', action);
+  if (payload) {
+    params.append('data', JSON.stringify(payload));
+  }
+
+  const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+
   const res = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
   });
 
-  const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
-
-  if (res.status === 401 || res.status === 403) {
-    sessionStorage.removeItem('adminToken');
-    window.location.href = '/admin';
-    throw new Error('Session expired');
-  }
   if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
+    throw new Error(`Failed to fetch: ${res.status}`);
   }
+
+  const data = await res.json().catch(() => {
+    throw new Error('Invalid JSON response');
+  });
+
   if (data.error) {
     throw new Error(data.error);
   }
+
   return data;
 }
 
-async function loadTracksFromProxy(): Promise<Track[]> {
+async function loadTracksFromScript(): Promise<Track[]> {
   const now = Date.now();
   if (cache && now - lastFetch < CACHE_TIME) return cache;
 
-  const data = await apiGet('/api/tracks');  // ← FIXED: كان /tracks
-  if (!Array.isArray(data)) throw new Error('Invalid data format from server');
+  const data = await fetchFromScript('getTracks');
+
+  if (!Array.isArray(data)) throw new Error('Invalid data format');
 
   cache = data.map((track: any, position: number) => ({
     id: track.id,
-    slug: track.id,
+    slug: track.slug || track.id,
     name: track.name,
     description: track.description,
     color: track.color,
@@ -109,7 +117,7 @@ async function loadTracksFromProxy(): Promise<Track[]> {
 
 async function ensureTracksLoaded(): Promise<Track[]> {
   if (!cache || Date.now() - lastFetch > CACHE_TIME) {
-    cache = await loadTracksFromProxy();
+    cache = await loadTracksFromScript();
   }
   return cache;
 }
@@ -131,32 +139,50 @@ export async function fetchTrackBySlug(slug: string): Promise<Track | null> {
   return data.find(t => t.slug === slug || t.id === slug) || null;
 }
 
+export async function adminLogin(password: string, key: string): Promise<string> {
+  if (password !== ADMIN_PASSWORD || key !== ADMIN_KEY) {
+    throw new Error('Invalid credentials');
+  }
+
+  const token = btoa(`admin:${Date.now()}`);
+  sessionStorage.setItem('adminToken', token);
+  return token;
+}
+
+export function getAdminToken(): string | null {
+  return sessionStorage.getItem('adminToken');
+}
+
 export async function createTrack(track: any): Promise<Track> {
+  const token = getAdminToken();
+  if (!token) throw new Error('Not authenticated');
+
   const newTrack = {
     ...track,
     id: track.slug,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const res = await apiPost('/api/admin/createTrack', newTrack, true);
-  cache = null; 
+
+  const res = await fetchFromScript('createTrack', { token, track: newTrack }, 'POST');
+  cache = null;
   return res;
 }
 
 export async function updateTrack(id: string, updates: any): Promise<Track> {
-  const data = await ensureTracksLoaded();
-  const updated = data.map(t =>
-    t.id === id ? { ...t, ...updates, updated_at: new Date().toISOString() } : t
-  );
-  const res = await apiPost('/api/admin/updateTrack', updated, true);
+  const token = getAdminToken();
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetchFromScript('updateTrack', { token, id, updates }, 'POST');
   cache = null;
   return res;
 }
 
 export async function deleteTrack(id: string): Promise<void> {
-  const data = await ensureTracksLoaded();
-  const updated = data.filter(t => t.id !== id);
-  await apiPost('/api/admin/deleteTrack', updated, true);
+  const token = getAdminToken();
+  if (!token) throw new Error('Not authenticated');
+
+  await fetchFromScript('deleteTrack', { token, id }, 'POST');
   cache = null;
 }
 
@@ -190,18 +216,26 @@ export function enrichStudentScore(student: any): StudentRecord {
   };
 }
 
+// Student cache
 const studentCache: Record<string, { data: StudentRecord[]; time: number }> = {};
 
 export async function getTrackStudents(trackId: string): Promise<StudentRecord[]> {
+  const token = getAdminToken();
   const cacheKey = trackId;
   const now = Date.now();
   if (studentCache[cacheKey] && now - studentCache[cacheKey].time < CACHE_TIME) {
     return studentCache[cacheKey].data;
   }
 
+  const track = await fetchTrackBySlug(trackId);
+  if (!track || !track.sheet_id) {
+    console.warn('Track has no connected sheet:', trackId);
+    return [];
+  }
+
   try {
-    const data = await apiGet(`/api/tracks/${encodeURIComponent(trackId)}/students`);
-    if (!Array.isArray(data)) throw new Error('Invalid student data format from server');
+    const data = await fetchFromScript('getStudents', { sheetId: track.sheet_id, token });
+    if (!Array.isArray(data)) throw new Error('Invalid student data');
 
     const students = data.map(enrichStudentScore);
     studentCache[cacheKey] = { data: students, time: now };
@@ -214,11 +248,13 @@ export async function getTrackStudents(trackId: string): Promise<StudentRecord[]
     throw e;
   }
 }
-
 export async function addStudent(
   trackId: string,
   student: Omit<StudentRecord, 'id' | 'score'> & { id?: string }
 ): Promise<StudentRecord> {
+  const token = getAdminToken();
+  if (!token) throw new Error('Not authenticated');
+
   const track = await fetchTrackBySlug(trackId);
   if (!track || !track.sheet_id) throw new Error('Track has no connected sheet');
 
@@ -235,41 +271,47 @@ export async function addStudent(
     bonus: student.bonus,
   };
 
-  await apiPost('/api/admin/addStudent', {
-    action: 'addStudent',
+  await fetchFromScript('addStudent', {
+    token,
     sheetId: track.sheet_id,
     student: newStudent,
-  }, true);
+  }, 'POST');
 
   studentCache[trackId] = { data: [], time: 0 };
   return newStudent;
 }
 
 export async function updateStudents(trackId: string, students: StudentRecord[]): Promise<void> {
+  const token = getAdminToken();
+  if (!token) throw new Error('Not authenticated');
+
   const track = await fetchTrackBySlug(trackId);
   if (!track || !track.sheet_id) throw new Error('Track has no connected sheet');
 
   const studentsWithScore = students.map(s => ({ ...s, score: calculateScore(s) }));
 
-  await apiPost('/api/admin/updateStudents', {
-    action: 'updateStudents',
+  await fetchFromScript('updateStudents', {
+    token,
     sheetId: track.sheet_id,
     trackId,
     students: studentsWithScore,
-  }, true);
+  }, 'POST');
 
   studentCache[trackId] = { data: [], time: 0 };
 }
 
 export async function deleteStudent(trackId: string, studentId: string): Promise<void> {
+  const token = getAdminToken();
+  if (!token) throw new Error('Not authenticated');
+
   const track = await fetchTrackBySlug(trackId);
   if (!track || !track.sheet_id) throw new Error('Track has no connected sheet');
 
-  await apiPost('/api/admin/deleteStudent', {
-    action: 'deleteStudent',
+  await fetchFromScript('deleteStudent', {
+    token,
     sheetId: track.sheet_id,
     studentId,
-  }, true);
+  }, 'POST');
 
   studentCache[trackId] = { data: [], time: 0 };
 }

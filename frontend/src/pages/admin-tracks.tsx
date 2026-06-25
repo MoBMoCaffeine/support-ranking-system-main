@@ -101,7 +101,12 @@ export function AdminTrackPage() {
     const [newStudent, setNewStudent] = useState<NewStudentForm>(emptyNewStudent);
 
     useEffect(() => {
-        if (slug) loadData(slug);
+        if (slug) {
+            loadData(slug);
+        } else {
+            setError('Track slug is missing from URL');
+            setLoading(false);
+        }
     }, [slug]);
 
     const loadData = async (trackSlug: string) => {
@@ -115,6 +120,7 @@ export function AdminTrackPage() {
 
             if (!trackData) {
                 setError('Track not found');
+                setLoading(false);
                 return;
             }
 
@@ -124,6 +130,7 @@ export function AdminTrackPage() {
                 Object.fromEntries(studentData.map(s => [s.id, { ...s }]))
             );
         } catch (e: any) {
+            console.error('Error loading track data:', e);
             if (e.message?.includes('Session expired') || e.message?.includes('Unauthorized')) {
                 window.location.href = '/admin';
             } else {
@@ -230,6 +237,7 @@ export function AdminTrackPage() {
                 ...swalTheme,
             });
         } catch (e: any) {
+            console.error('Save error:', e);
             if (e.message?.includes('Session expired')) {
                 window.location.href = '/admin';
             } else {
@@ -266,6 +274,7 @@ export function AdminTrackPage() {
             });
             await Swal.fire({ title: 'Deleted', icon: 'success', timer: 1200, showConfirmButton: false, ...swalTheme });
         } catch (e: any) {
+            console.error('Delete error:', e);
             if (e.message?.includes('Session expired')) {
                 window.location.href = '/admin';
             } else {
@@ -300,6 +309,7 @@ export function AdminTrackPage() {
             setAddOpen(false);
             await Swal.fire({ title: 'Added!', text: 'Student added successfully.', icon: 'success', ...swalTheme });
         } catch (e: any) {
+            console.error('Add error:', e);
             if (e.message?.includes('Session expired')) {
                 window.location.href = '/admin';
             } else {
