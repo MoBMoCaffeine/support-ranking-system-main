@@ -24,7 +24,6 @@ import {
 import { cn } from '@/lib/utils';
 import { Counter } from './CounterAnimation';
 
-// Score distribution chart
 function ScoreDistributionChart({ scores }: { scores: number[] }) {
   const min = Math.min(...scores);
   const max = Math.max(...scores);

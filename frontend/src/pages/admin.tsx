@@ -245,7 +245,6 @@ export function AdminPage() {
     }
   };
 
-  // ← التعديل الرئيسي هنا: استخدام adminLogin من tracks-service.ts
   const handleAdminSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setAdminError('');

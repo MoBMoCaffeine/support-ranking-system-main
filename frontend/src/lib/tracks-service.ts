@@ -57,7 +57,6 @@ async function fetchFromScript(action: string, payload?: any, method: 'GET' | 'P
     return data;
   }
 
-  // GET logic for read operations
   const params = new URLSearchParams();
   params.append('action', action);
   if (payload) {
@@ -216,7 +215,7 @@ export function enrichStudentScore(student: any): StudentRecord {
   };
 }
 
-// Student cache
+
 const studentCache: Record<string, { data: StudentRecord[]; time: number }> = {};
 
 export async function getTrackStudents(trackId: string): Promise<StudentRecord[]> {

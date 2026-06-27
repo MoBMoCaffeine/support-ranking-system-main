@@ -98,7 +98,6 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
-  /* Scrollbar styling */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -132,7 +131,6 @@
 
 @layer components {
 
-  /* Glow effects */
   .glow-green {
     box-shadow: 0 0 20px rgba(0, 204, 0, 0.3), 0 0 40px rgba(0, 204, 0, 0.1);
   }
@@ -141,7 +139,6 @@
     box-shadow: 0 0 10px rgba(0, 204, 0, 0.2);
   }
 
-  /* Card hover effects */
   .card-hover {
     @apply transition-all duration-300;
   }
@@ -152,7 +149,6 @@
     transform: translateY(-2px);
   }
 
-  /* Glassmorphism */
   .glass {
     background: rgba(17, 17, 17, 0.95);
   }
@@ -169,7 +165,6 @@
     background: rgba(255, 255, 255, 0.8);
   }
 
-  /* Gradient text */
   .text-gradient {
     background: linear-gradient(135deg, #00CC00 0%, #33FF33 50%, #00CC00 100%);
     -webkit-background-clip: text;
@@ -177,7 +172,6 @@
     background-clip: text;
   }
 
-  /* Gold/Silver/Bronze rank styles */
   .rank-gold {
     background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
     color: #000;
@@ -193,7 +187,6 @@
     color: #000;
   }
 
-  /* Rank card styles */
   .rank-card-gold {
     border: 2px solid #FFD700;
     box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
@@ -209,7 +202,6 @@
     box-shadow: 0 0 30px rgba(205, 127, 50, 0.3);
   }
 
-  /* Premium card for other ranks */
   .rank-card-default {
     border: 1px solid hsl(0 0% 26%);
     background: hsl(0 0% 7%);
@@ -220,7 +212,6 @@
     box-shadow: 0 0 20px rgba(0, 204, 0, 0.1);
   }
 
-  /* Animated background gradient */
   .animated-gradient {
     background-size: 200% 200%;
     animation: gradient 8s ease infinite;
@@ -240,7 +231,6 @@
     }
   }
 
-  /* Skeleton loading */
   .skeleton {
     background: linear-gradient(90deg, hsl(0 0% 9%) 25%, hsl(0 0% 15%) 50%, hsl(0 0% 9%) 75%);
     background-size: 200% 100%;
@@ -263,7 +253,6 @@
     animation: shimmer 1.5s infinite;
   }
 
-  /* Pulse animation for live indicators */
   .pulse-green {
     animation: pulse-green 2s infinite;
   }
